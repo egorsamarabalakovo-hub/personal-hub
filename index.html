@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Личный центр Pro</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<meta name="theme-color" content="#4f6df5">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="qrcode.min.js"></script>
 <style>
 :root{
 --bg:#eef2f7; --card:#ffffff; --text:#0f172a; --muted:#64748b; --accent:#4f6df5; --accent2:#9d4edd;
@@ -63,6 +66,16 @@ box-shadow:var(--shadow-lg); animation:rise .55s ease; border:1px solid var(--bo
 font-size:.95rem; background:var(--card); color:var(--text); transition:border-color var(--anim-fast), box-shadow var(--anim-fast); }
 .auth-card input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,109,245,.15); outline:none; }
 .auth-card .btn{ width:100%; }
+.auth-card .pw-field{ position:relative; }
+.auth-card .pw-field input{ width:100%; padding-right:44px; }
+.auth-card .pw-eye{ position:absolute; right:6px; top:8px; width:32px; height:32px; border:none; border-radius:8px;
+background:transparent; color:var(--muted); font-size:1.15rem; display:flex; align-items:center; justify-content:center; }
+.auth-card .pw-eye:hover{ background:var(--bg); color:var(--accent); }
+.auth-card .pw-eye svg{ pointer-events:none; display:block; }
+.forgot-row{ text-align:center; margin-top:10px; }
+.forgot-btn{ background:none; border:none; color:var(--accent); font-size:.85rem; cursor:pointer; text-decoration:underline; padding:4px 8px; }
+.forgot-btn:hover{ color:var(--accent2); }
+#forgotBody{ padding:10px 14px; border:1px solid var(--border); border-radius:12px; background:var(--bg); font-size:.95rem; }
 .auth-err{ color:var(--err); font-size:.85rem; min-height:1.2em; margin-bottom:6px; }
 
 /* ===== ШАПКА ===== */
@@ -282,15 +295,16 @@ transition:transform var(--anim-fast), box-shadow var(--anim-fast), filter var(-
 <button id="tabReg" onclick="authTab('reg')">Регистрация</button>
 </div>
 <input id="auName" placeholder="Имя пользователя" autocomplete="username">
-<input id="auPass" type="password" placeholder="Пароль (мин. 4 символа)" autocomplete="current-password">
-<input id="auPass2" type="password" placeholder="Повторите пароль" style="display:none">
+<div class="pw-field"><input id="auPass" type="password" placeholder="Введите пароль" autocomplete="new-password"><button type="button" class="pw-eye" onclick="togglePw('auPass',this)" title="Показать пароль"><svg class="eye-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+<div class="pw-field" style="display:none" id="auPass2Wrap"><input id="auPass2" type="password" placeholder="Повторите пароль" autocomplete="new-password"><button type="button" class="pw-eye" onclick="togglePw('auPass2',this)" title="Показать пароль"><svg class="eye-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+<input id="auHint" placeholder="Подсказка для пароля (необязательно)" style="display:none" title="Подсказка, если забудете пароль">
 <select id="auGender" style="display:none" title="Пол">
 <option value="male">Мужчина</option>
 <option value="female">Женщина</option>
 </select>
 <div class="auth-err" id="auErr"></div>
 <button class="btn" id="auBtn" onclick="authSubmit()">Войти</button>
-<p class="hint" style="text-align:center">Данные не покидают это устройство. Забытый пароль восстановить нельзя.</p>
+<div class="forgot-row"><button type="button" class="forgot-btn" onclick="forgotPass()">Забыли пароль?</button></div>
 </div>
 </div>
 
@@ -645,22 +659,34 @@ transition:transform var(--anim-fast), box-shadow var(--anim-fast), filter var(-
 </div>
 
 <div class="toast" id="toast"></div>
+<script src="config.js"></script>
+
+<div class="modal-overlay" id="forgotOv" onclick="if(event.target===this)closeForgot()">
+<div class="paywall" style="max-width:420px;text-align:center">
+<div class="pw-logo">?</div>
+<h2>Забыли пароль?</h2>
+<p class="pw-sub">Пароль хранится только на этом устройстве и зашифрован — восстановить его нельзя.</p>
+<div id="forgotBody" style="margin:6px 0 4px"></div>
+<div id="forgotEmpty" class="hint" style="text-align:center"></div>
+<div class="pw-key-toggle" id="forgotForm" style="display:none">
+<input id="foName" placeholder="Ваше имя пользователя" style="width:100%">
+<div class="pw-btn-center"><button class="btn" id="foFindBtn" onclick="showHint()">Найти подсказку</button></div>
+</div>
+<div class="pw-key-toggle" id="forgotDelete" style="display:none">
+<div class="row" style="justify-content:center">
+<button class="btn danger" onclick="deleteForgotAcc()">Удалить аккаунт и регистрироваться заново</button>
+</div>
+<p class="pw-key-hint">Удаляет аккаунт с именем выше вместе со всеми его данными. Название освободится — можно зарегистрироваться.</p>
+</div>
+<button class="pw-close" onclick="closeForgot()">Закрыть</button>
+</div>
+</div>
 <script>
 /* =========================================================
-НАСТРОЙКИ ПРОДАВЦА — МЕНЯТЬ ТОЛЬКО ЗДЕСЬ
+Конфигурация (SELLER_CARD, PLANS, PRO_SECRET и т.д.) загружается
+из config.js выше. Файл config.js — приватный, в репозиторий
+не попадает (см. .gitignore).
 ========================================================= */
-const SELLER_CARD = '';
-const SELLER_SBP_PHONE = '+79242266140';
-const MAX_PHONE = '+79242266140';
-const MAX_CHAT_URL = 'https://max.ru/u/f9LHodD0cOJEnk0u3qS8o-7rzFCnKS89jyLU4voDJV53ovVsvvO4x4r5us0';
-const SBP_QR_LINK = 'https://c2c.cbrpay.ru/AS1I0038O7LSU5HR8JPQ7PS39A92FOBA';
-const PRO_SECRET = 'vK4mTq9ZpX2nR7sD';
-const TRIAL_MS = 24*60*60*1000;
-const PLANS = {
-M: { name:'Месяц', price:299, ms:30*24*60*60*1000, per:'в месяц' },
-Q: { name:'3 месяца', price:893, ms:90*24*60*60*1000, per:'за 3 месяца · выгода ~5%' },
-L: { name:'Навсегда', price:1000, ms:0, per:'один платёж · без срока' }
-};
 
 /* ================= Хранилище ================= */
 const LS = {
@@ -676,6 +702,27 @@ let tasks, notes, habits, fins, shop, moods, events;
 let trialWasActive = false;
 
 function hash(s){ let h=0x811c9dc5; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193);} return (h>>>0).toString(36)+s.length; }
+
+/* ===== Проверка пароля на надёжность ===== */
+const EASY_PASSES = ['1234','12345','123456','1234567','12345678','123456789','1234567890',
+'0000','1111','2222','3333','4444','5555','6666','7777','8888','9999',
+'111111','000000','121212','123123','654321','987654',
+'qwerty','qwertyuiop','йцукен','йцукенг','йцукенгшщз','asdf','asdfgh','zxcvbn',
+'password','пароль','пароль123','parol','parol123','kot','kotic','kotik','sobaka',
+'qwe123','123qwe','abc123','iloveyou','admin','admin123','user','guest'];
+function passError(pass, name){
+const p = (pass||'').toLowerCase();
+if((pass||'').length < 6) return 'Пароль — минимум 6 символов.';
+if(!/[a-zа-яё]/i.test(pass)) return 'В пароле должны быть буквы.';
+if(!/\d/.test(pass)) return 'Добавьте в пароль хотя бы одну цифру.';
+if(EASY_PASSES.includes(p)) return 'Слишком простой пароль — придумайте другой.';
+if(/^\d+$/.test(pass) || /^[a-zа-яё]+$/i.test(pass)) return 'Пароль должен состоять и из букв, и из цифр.';
+if(/(.)\1{2,}/.test(pass)) return 'Не используйте повторяющиеся символы (111, ааа).';
+if(/(?:0123|1234|2345|3456|4567|5678|6789|7890|9876|8765|7654|6543|5432|4321|3210)/.test(p.replace(/\D/g,''))) return 'Не используйте последовательности (1234, 9876).';
+if(name && p.includes(name.toLowerCase())) return 'Пароль не должен повторять имя.';
+if(/^[qwertyuiopasdfghjklzxcvbnmйцукенгшщзхфывапролджэячсмитьбю]+$/i.test(p)) return 'Пароль должен содержать цифры.';
+return null;
+}
 
 /* ================= ГЕНДЕР: пол, окончания, цвета ================= */
 function userKey(){ return user.toLowerCase(); }
@@ -730,15 +777,6 @@ updateTrialBadge();
 }, 30000);
 
 /* ================= Лицензии и тарифы ================= */
-function fnv1a(s){ let h=0x811c9dc5; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193); } return (h>>>0).toString(16).padStart(8,'0'); }
-function checkKey(k){
-k = (k||'').trim().toUpperCase();
-const m = k.match(/^PRO-([MQL])-([0-9A-F]{8})$/);
-if(!m) return null;
-const plan = m[1], body = m[2].toLowerCase();
-for(let n=0;n<=99999;n++){ if(fnv1a(PRO_SECRET+'-'+plan+'-'+n)===body) return plan; }
-return null;
-}
 function curPlan(){ return LS.uget('plan', null); }
 function planActive(p){
 if(!p) return false;
@@ -781,7 +819,7 @@ st.innerHTML = 'Сейчас активна <b>бесплатная версия
 updateTrialBadge();
 }
 function setPlan(type, key){
-const pr = PLANS[type];
+const pr = PLANS[type] || { ms: null };
 LS.uset('plan', { type, until: pr.ms ? Date.now()+pr.ms : null, key: key || null });
 localStorage.removeItem('lc_'+user+'_pro');
 refreshProUI(); renderStat();
@@ -789,7 +827,8 @@ refreshProUI(); renderStat();
 function chooseFree(){
 setPlan('F', null);
 closePlanOv();
-toast('✅ Бесплатная версия подключена. Тарифы всегда доступны в настройках.');
+document.querySelector('#mainNav button[data-p="tasks"]').click();
+toast('Бесплатная версия подключена. Все функции доступны.');
 }
 function openPlanOv(){ renderPlanGrid('planGrid'); document.getElementById('planOv').classList.add('show'); }
 function closePlanOv(){ document.getElementById('planOv').classList.remove('show'); }
@@ -872,25 +911,116 @@ document.getElementById('paywallOv').classList.add('show');
 function closePaywall(){ document.getElementById('paywallOv').classList.remove('show'); }
 function toggleKeyInput(){ document.getElementById('pwKeyrow').classList.toggle('show'); document.getElementById('pwKey').focus(); }
 function applyKey(){
-const v = document.getElementById('pwKey').value;
-const plan = checkKey(v);
-if(plan){
-setPlan(plan, v.trim().toUpperCase());
-closePaywall(); closePlanOv();
-toast('🎉 Тариф «'+PLANS[plan].name+'» активирован!');
-} else {
-document.getElementById('pwErr').textContent='Ключ не подошёл. Формат: PRO-M-… / PRO-Q-… / PRO-L-XXXXXXXX.';
-}
+const key = document.getElementById('pwKey').value.trim().toUpperCase();
+const btn = document.getElementById('pwActivateBtn');
+const errEl = document.getElementById('pwErr');
+if(!key){ errEl.textContent='Введите ключ.'; return; }
+
+// Серверная проверка: секрет живёт на воркере, а не в коде сайта
+errEl.textContent='Проверяем ключ…';
+if(btn) btn.disabled = true;
+
+const url = (typeof KEY_SERVER_URL !== 'undefined' && KEY_SERVER_URL) ? KEY_SERVER_URL : 'https://YOUR-WORKER.workers.dev';
+fetch(url + '/api/verify', {
+  method:'POST',
+  headers:{ 'Content-Type':'application/json' },
+  body: JSON.stringify({ key: key })
+})
+.then(r=>r.json())
+.then(res=>{
+  if(btn) btn.disabled = false;
+  if(res && res.ok && PLANS[res.plan]){
+    setPlan(res.plan, key);
+    closePaywall(); closePlanOv();
+    toast('Тариф «'+PLANS[res.plan].name+'» активирован!');
+  } else {
+    errEl.textContent = (res && res.error) ? res.error : 'Ключ не подошёл. Формат: PRO-M-… / PRO-Q-… / PRO-L-XXXXXXXX.';
+  }
+})
+.catch(()=>{
+  if(btn) btn.disabled = false;
+  errEl.textContent='Не удалось связаться с сервером проверки. Проверьте интернет или попробуйте позже.';
+});
 }
 
 /* ================= Заставка и авторизация ================= */
 setTimeout(()=>document.getElementById('splash').classList.add('hide'), 1800);
 
+function togglePw(id,btn){
+const inp=document.getElementById(id);
+const show=inp.type==='password';
+inp.type=show?'text':'password';
+const eye='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+const off='<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+btn.innerHTML='<svg class="eye-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(show?off:eye)+'</svg>';
+btn.title=show?'Скрыть пароль':'Показать пароль';
+}
+function forgotPass(){
+if(document.getElementById('tabReg').classList.contains('on')){ authTab('login'); return; }
+const name=document.getElementById('auName').value.trim().toLowerCase();
+const users=store.get('users',{});
+const body=document.getElementById('forgotBody');
+const empty=document.getElementById('forgotEmpty');
+const form=document.getElementById('forgotForm');
+const del=document.getElementById('forgotDelete');
+if(name && users[name]){
+const u=users[name];
+body.style.display='';
+form.style.display='none';
+del.style.display='block';
+empty.textContent='';
+body.innerHTML=u.hint ? ('Подсказка для «'+esc(name)+'»:<br><b style="font-size:1.05rem">'+esc(u.hint)+'</b>') : ('Подсказки для «'+esc(name)+'» не было указано.');
+document.getElementById('foName').value=name;
+} else {
+empty.textContent='Введите имя пользователя ниже — покажем подсказку, если она указана.';
+form.style.display='block';
+del.style.display='none';
+body.style.display='none';
+document.getElementById('foName').value=name;
+}
+document.getElementById('forgotOv').classList.add('show');
+}
+function closeForgot(){ document.getElementById('forgotOv').classList.remove('show'); }
+function showHint(){
+const name=document.getElementById('foName').value.trim().toLowerCase();
+const users=store.get('users',{});
+const body=document.getElementById('forgotBody');
+const empty=document.getElementById('forgotEmpty');
+if(!name){ empty.textContent='Введите имя пользователя.'; return; }
+if(!users[name]){ empty.textContent='Такого аккаунта на этом устройстве не найдено.'; return; }
+const u=users[name];
+empty.textContent='';
+body.style.display='';
+document.getElementById('forgotDelete').style.display='block';
+body.innerHTML=u.hint ? ('Подсказка для «'+esc(name)+'»:<br><b style="font-size:1.05rem">'+esc(u.hint)+'</b>') : ('Подсказки для «'+esc(name)+'» не было указано.');
+document.getElementById('foName').value=name;
+}
+function deleteForgotAcc(){
+const name=(document.getElementById('foName').value.trim()||document.getElementById('auName').value.trim()).toLowerCase();
+if(!name) return;
+if(user && user.toLowerCase()===name){
+const users=store.get('users',{});
+delete users[name]; store.set('users',users);
+store.set('session', null); user=null;
+document.getElementById('app').style.display='none';
+document.getElementById('auth').style.display='flex';
+} else {
+const users=store.get('users',{});
+if(!users[name]){ toast('Такого аккаунта нет'); return; }
+delete users[name]; store.set('users',users);
+}
+Object.keys(localStorage).filter(k=>k.startsWith('lc_'+name+'_')).forEach(k=>localStorage.removeItem(k));
+closeForgot();
+toast('Аккаунт «'+name+'» удалён. Теперь можно регистрироваться заново.');
+setTimeout(()=>{ authTab('reg'); document.getElementById('auName').value=''; document.getElementById('auPass').value=''; document.getElementById('auPass2').value=''; },50);
+}
 function authTab(t){
 document.getElementById('tabLogin').classList.toggle('on', t==='login');
 document.getElementById('tabReg').classList.toggle('on', t==='reg');
-document.getElementById('auPass2').style.display = t==='reg' ? '' : 'none';
+document.getElementById('auPass2Wrap').style.display = t==='reg' ? '' : 'none';
 document.getElementById('auGender').style.display = t==='reg' ? '' : 'none';
+document.getElementById('auHint').style.display = t==='reg' ? '' : 'none';
+document.getElementById('auPass').placeholder = t==='reg' ? 'Придумайте пароль' : 'Введите пароль';
 document.getElementById('auBtn').textContent = t==='reg' ? 'Создать аккаунт' : 'Войти';
 document.getElementById('auErr').textContent='';
 }
@@ -899,17 +1029,19 @@ const name = document.getElementById('auName').value.trim();
 const pass = document.getElementById('auPass').value;
 const err = document.getElementById('auErr');
 if(name.length<2){ err.textContent='Имя — минимум 2 символа.'; return; }
-if(pass.length<4){ err.textContent='Пароль — минимум 4 символа.'; return; }
-const users = store.get('users', {});
 if(document.getElementById('tabReg').classList.contains('on')){
-if(users[name.toLowerCase()]){ err.textContent='Такое имя уже занято.'; return; }
+const pErr = passError(pass, name);
+if(pErr){ err.textContent = pErr; return; }
 if(pass!==document.getElementById('auPass2').value){ err.textContent='Пароли не совпадают.'; return; }
-users[name.toLowerCase()] = { name, pass:hash(pass), gender:document.getElementById('auGender').value, trial:Date.now() };
+const users = store.get('users', {});
+users[name.toLowerCase()] = { name, pass:hash(pass), gender:document.getElementById('auGender').value, hint:document.getElementById('auHint').value.trim() || '', trial:Date.now() };
 store.set('users', users);
 enter(name, true);
 } else {
+const users = store.get('users', {});
 const u = users[name.toLowerCase()];
-if(!u || u.pass!==hash(pass)){ err.textContent='Неверное имя или пароль.'; return; }
+if(!u){ err.textContent='Аккаунт «'+name+'» на этом устройстве не найден. Сначала проходим «Регистрация» и жмём «Создать аккаунт».'; return; }
+if(u.pass!==hash(pass)){ err.textContent='Пароль неверный. Попробуйте ещё раз (регистр и цифры важны) или нажмите «Забыли пароль?».'; return; }
 enter(u.name, false);
 }
 }
@@ -1003,6 +1135,7 @@ if(b.dataset.p==='set'){ renderStat(); refreshProUI(); refreshAppearance(); }
 if(b.dataset.p==='timer'){ renderMs(); swShow(); cdShow(); tbShow(); }
 });
 function renderAll(){ renderTasks(); renderNotes(); renderHabits(); renderFin(); drawPie(); renderShop(); renderMood(); renderCal(); renderStat(); refreshAppearance(); }
+
 
 /* ================= Задачи ================= */
 const PRIO={high:'Высокий',mid:'Средний',low:'Низкий'};
@@ -1483,6 +1616,13 @@ document.getElementById('whoLine').textContent='👤 '+user;
 renderAll();
 } else {
 setTimeout(()=>{ document.getElementById('auth').style.display='flex'; },1800);
+}
+
+/* ======= PWA: регистрация service worker (офлайн) ======= */
+if('serviceWorker' in navigator && location.protocol !== 'file:'){
+window.addEventListener('load', ()=>{
+navigator.serviceWorker.register('sw.js').catch(()=>{});
+});
 }
 </script>
 </body>
