@@ -7,14 +7,16 @@
 <meta name="theme-color" content="#4f6df5">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<script src="qrcode.min.js"></script>
+<script>const TRIAL_MS = 24 * 60 * 60 * 1000;</script>
+<script src="config.js"></script>
+<script src="qrcode.js"></script>
 <style>
 :root{
 --bg:#eef2f7; --card:#ffffff; --text:#0f172a; --muted:#64748b; --accent:#4f6df5; --accent2:#9d4edd;
 --ok:#10b981; --err:#ef4444; --warn:#f59e0b; --border:#e2e8f0; --r:16px;
 --shadow:0 1px 3px rgba(15,23,42,.06), 0 8px 24px -12px rgba(15,23,42,.12);
 --shadow-lg:0 12px 40px -8px rgba(79,109,245,.22);
---anim-fast:.2s ease; --anim-med:.3s cubic-bezier(.25,1,.5,1); --anim-slow:.45s cubic-bezier(.16,1,.3,1);
+--anim-fast:.25s cubic-bezier(.25,.7,.35,1); --anim-med:.35s cubic-bezier(.25,1,.4,1); --anim-slow:.5s cubic-bezier(.16,1,.3,1);
 }
 [data-theme="dark"]{
 --bg:#0b1220; --card:#151e33; --text:#e7ecf5; --muted:#8b98ad; --accent:#6b8afd; --accent2:#b17bf0;
@@ -88,24 +90,36 @@ background:rgba(255,255,255,.08); top:-160px; right:-60px; pointer-events:none; 
 header h1{ font-size:1.2rem; letter-spacing:.3px; }
 header .who{ font-size:.85rem; opacity:.92; margin-top:2px; }
 header button{ background:rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.2); border-radius:10px;
-padding:8px 13px; font-size:.82rem; backdrop-filter:blur(6px); }
+padding:8px 13px; font-size:.82rem; backdrop-filter:blur(6px);
+transition:background var(--anim-fast), transform var(--anim-fast), box-shadow var(--anim-fast), border-color var(--anim-fast); }
 header button:hover{ background:rgba(255,255,255,.3); transform:translateY(-2px); box-shadow:0 6px 14px rgba(0,0,0,.15); }
 header .trial-badge{ font-size:.78rem; background:rgba(255,255,255,.22); border-radius:99px; padding:6px 13px; font-weight:600; }
 header .trial-badge.urgent{ animation:pulse 1.2s ease infinite; }
 @keyframes pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.07); } }
 #clock{ font-size:.85rem; font-variant-numeric:tabular-nums; opacity:.95; }
-
 /* ===== НАВИГАЦИЯ ===== */
-nav{ display:flex; gap:5px; padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border);
-overflow-x:auto; position:sticky; top:0; z-index:10; box-shadow:0 4px 16px -8px rgba(15,23,42,.15); }
-nav::-webkit-scrollbar{ height:0; }
-nav button{ border:none; background:transparent; color:var(--muted); font-size:.88rem; padding:8px 14px;
+.nav-shell{ position:sticky; top:0; z-index:10; display:flex; align-items:center; background:var(--card);
+border-bottom:1px solid var(--border); box-shadow:0 4px 16px -8px rgba(15,23,42,.15); }
+.nav-arrow{ position:absolute; top:50%; transform:translateY(-50%); width:42px; height:42px; font-size:1.25rem;
+border:none; border-radius:13px; color:#fff; display:flex; align-items:center; justify-content:center; z-index:2;
+background:linear-gradient(135deg,var(--accent),var(--accent2)); box-shadow:0 5px 14px rgba(79,109,245,.35);
+transition:filter var(--anim-fast), transform var(--anim-fast), box-shadow var(--anim-fast); }
+.nav-arrow:hover{ filter:brightness(1.09); box-shadow:0 8px 20px rgba(79,109,245,.45); }
+.nav-arrow:active{ transform:translateY(-50%) scale(.94); }
+.nav-arrow.left{ left:8px; }
+.nav-arrow.right{ right:8px; }
+.nav-arrow.hidden{ opacity:0; pointer-events:none; }
+.nav-arrow svg{ width:20px; height:20px; }
+#mainNav{ position:relative; display:flex; gap:5px; padding:10px 58px; overflow-x:auto; scroll-behavior:smooth;
+background:var(--card); scrollbar-width:none; -ms-overflow-style:none; }
+#mainNav::-webkit-scrollbar{ height:0; }
+#mainNav button{ border:none; background:transparent; color:var(--muted); font-size:.88rem; padding:8px 14px;
 border-radius:99px; white-space:nowrap; font-weight:500; }
-nav button:hover{ background:var(--bg); color:var(--text); transform:translateY(-1px); }
-nav button.active{ background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 4px 12px rgba(79,109,245,.35); }
-nav .pro-tag{ display:inline-block; margin-left:4px; font-size:.62rem; font-weight:700; background:#fbbf24; color:#78350f;
+#mainNav button:hover{ background:var(--bg); color:var(--text); transform:translateY(-1px); }
+#mainNav button.active{ background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 4px 12px rgba(79,109,245,.35); }
+#mainNav .pro-tag{ display:inline-block; margin-left:4px; font-size:.62rem; font-weight:700; background:#fbbf24; color:#78350f;
 padding:2px 6px; border-radius:99px; vertical-align:middle; }
-nav button.active .pro-tag{ background:rgba(255,255,255,.9); }
+#mainNav button.active .pro-tag{ background:rgba(255,255,255,.9); }
 
 /* ===== КОНТЕНТ ===== */
 main{ max-width:960px; margin:20px auto; padding:0 16px; }
@@ -117,15 +131,17 @@ border:1px solid var(--border); transition:box-shadow var(--anim-med), transform
 h2{ font-size:1.08rem; margin-bottom:12px; font-weight:700; display:flex; align-items:center; gap:8px; }
 h3{ font-size:.92rem; margin:12px 0 8px; font-weight:600; }
 input,select,textarea{ background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:10px;
-padding:10px 12px; font-size:.93rem; }
+padding:10px 12px; font-size:.93rem; transition:border-color var(--anim-fast), box-shadow var(--anim-fast); }
 input:focus,textarea:focus,select:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,109,245,.15); }
 textarea{ width:100%; resize:vertical; font-family:inherit; }
 
 .btn{ background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; border-radius:11px;
 padding:10px 17px; font-size:.93rem; font-weight:600; text-decoration:none; display:inline-block;
-box-shadow:0 4px 12px rgba(79,109,245,.3); }
+box-shadow:0 4px 12px rgba(79,109,245,.3); cursor:pointer;
+transition:transform var(--anim-fast), box-shadow var(--anim-fast), filter var(--anim-fast),
+background-color var(--anim-fast), border-color var(--anim-fast), color var(--anim-fast); }
 .btn:hover{ filter:brightness(1.08); transform:translateY(-2px); box-shadow:0 7px 18px rgba(79,109,245,.4); }
-.btn:active{ transform:translateY(0) scale(.97); }
+.btn:active{ transform:translateY(0) scale(.97); transition-duration:var(--anim-fast); }
 .btn.small{ padding:6px 12px; font-size:.8rem; box-shadow:none; }
 .btn.gray{ background:var(--bg); color:var(--text); border:1px solid var(--border); box-shadow:none; }
 .btn.gray:hover{ border-color:var(--accent); color:var(--accent); }
@@ -137,8 +153,9 @@ box-shadow:0 4px 12px rgba(79,109,245,.3); }
 ul.clean{ list-style:none; padding:0; }
 ul.clean li{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 13px;
 border:1px solid var(--border); border-radius:12px; margin-bottom:8px; flex-wrap:wrap;
-background:var(--bg); animation:fadeIn .3s ease; }
-ul.clean li:hover{ border-color:var(--accent); transform:translateX(3px); }
+background:var(--bg); animation:fadeIn var(--anim-med) ease;
+transition:border-color var(--anim-fast), transform var(--anim-fast), box-shadow var(--anim-fast); }
+ul.clean li:hover{ border-color:var(--accent); transform:translateX(3px); box-shadow:0 4px 14px -6px rgba(79,109,245,.25); }
 @keyframes fadeIn{ from{ opacity:0; transform:translateX(-8px); } }
 li.done .t{ text-decoration:line-through; color:var(--muted); }
 .t{ flex:1; word-break:break-word; font-size:.93rem; }
@@ -177,7 +194,7 @@ font-feature-settings:'tnum'; letter-spacing:2px; }
 .lap-row{ display:flex; justify-content:space-between; gap:10px; padding:7px 12px; border-bottom:1px dashed var(--border); font-size:.88rem; }
 .lap-row b{ font-variant-numeric:tabular-nums; }
 .msrow{ display:flex; align-items:center; gap:9px; padding:11px 14px; border:1px solid var(--border); border-radius:12px;
-margin-bottom:9px; flex-wrap:wrap; background:var(--bg); animation:fadeIn .3s; }
+margin-bottom:9px; flex-wrap:wrap; background:var(--bg); animation:fadeIn var(--anim-med); }
 .msrow .ms-time{ font-variant-numeric:tabular-nums; font-weight:700; font-size:1.1rem; min-width:105px; text-align:right; }
 .msrow .ms-name{ flex:1; min-width:120px; word-break:break-word; font-size:.93rem; }
 
@@ -186,7 +203,8 @@ margin-bottom:9px; flex-wrap:wrap; background:var(--bg); animation:fadeIn .3s; }
 .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
 .cal-grid .dow{ text-align:center; font-size:.72rem; color:var(--muted); font-weight:700; padding:5px 0; text-transform:uppercase; }
 .cal-day{ aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid var(--border);
-border-radius:11px; font-size:.85rem; cursor:pointer; position:relative; font-weight:500; }
+border-radius:11px; font-size:.85rem; cursor:pointer; position:relative; font-weight:500;
+transition:border-color var(--anim-fast), transform var(--anim-fast), box-shadow var(--anim-fast), color var(--anim-fast), background var(--anim-fast); }
 .cal-day:hover{ border-color:var(--accent); transform:scale(1.08); box-shadow:0 4px 12px rgba(79,109,245,.2); }
 .cal-day.today{ background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; font-weight:700; }
 .cal-day.out{ opacity:.25; }
@@ -195,15 +213,17 @@ border-radius:11px; font-size:.85rem; cursor:pointer; position:relative; font-we
 
 /* ===== ПРИВЫЧКИ ===== */
 .habit-row{ display:flex; align-items:center; gap:8px; padding:11px 13px; border:1px solid var(--border); border-radius:12px;
-margin-bottom:8px; flex-wrap:wrap; background:var(--bg); animation:fadeIn .3s; }
+margin-bottom:8px; flex-wrap:wrap; background:var(--bg); animation:fadeIn var(--anim-med); }
 .hday{ width:32px; height:32px; border-radius:10px; border:1px solid var(--border); display:flex; align-items:center;
-justify-content:center; font-size:.72rem; cursor:pointer; }
+justify-content:center; font-size:.72rem; cursor:pointer;
+transition:border-color var(--anim-fast), transform var(--anim-fast), background var(--anim-fast), box-shadow var(--anim-fast); }
 .hday:hover{ border-color:var(--accent); transform:scale(1.12); }
 .hday.on{ background:linear-gradient(135deg,#34d399,#10b981); color:#fff; border:none; box-shadow:0 3px 8px rgba(16,185,129,.3); }
 
 /* ===== НАСТРОЕНИЕ ===== */
 .mood-row{ display:flex; gap:10px; justify-content:center; margin:12px 0; flex-wrap:wrap; }
-.mood-row button{ font-size:1.7rem; background:none; border:1px solid var(--border); border-radius:14px; padding:9px 14px; }
+.mood-row button{ font-size:1.7rem; background:none; border:1px solid var(--border); border-radius:14px; padding:9px 14px;
+transition:border-color var(--anim-fast), transform var(--anim-fast), box-shadow var(--anim-fast); }
 .mood-row button:hover{ border-color:var(--accent); transform:scale(1.18) rotate(-5deg); box-shadow:0 6px 14px rgba(79,109,245,.2); }
 .mood-week{ display:flex; gap:9px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
 .mood-week .d{ text-align:center; font-size:.72rem; color:var(--muted); background:var(--bg); border-radius:10px; padding:7px 9px; border:1px solid var(--border); }
@@ -233,7 +253,8 @@ padding:3px 9px; border-radius:99px; box-shadow:0 2px 8px rgba(245,158,11,.4); }
 .plan-free-card .pf-t{ font-weight:700; margin-bottom:5px; }
 .plan-free-card .pf-d{ font-size:.82rem; color:var(--muted); margin-bottom:11px; }
 .plan-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:11px; margin:15px 0; }
-.plan-card{ border:2px solid var(--border); border-radius:16px; padding:16px 13px; text-align:center; cursor:pointer; position:relative; background:var(--bg); }
+.plan-card{ border:2px solid var(--border); border-radius:16px; padding:16px 13px; text-align:center; cursor:pointer; position:relative; background:var(--bg);
+transition:border-color var(--anim-fast), transform var(--anim-fast), box-shadow var(--anim-fast); }
 .plan-card:hover{ border-color:var(--accent); transform:translateY(-4px); box-shadow:var(--shadow-lg); }
 .plan-card .pc-name{ font-weight:700; font-size:.95rem; }
 .plan-card .pc-price{ font-size:1.45rem; font-weight:800; color:var(--accent); margin:7px 0; }
@@ -251,6 +272,10 @@ font-size:.65rem; font-weight:800; padding:4px 10px; border-radius:99px; box-sha
 .pay-item:last-child{ border-bottom:none; }
 .pay-item .val{ font-family:monospace; font-size:1.05rem; font-weight:700; user-select:all; }
 #qrBox, #qrMax{ display:flex; justify-content:center; padding:12px; background:#fff; border-radius:12px; margin:8px auto; width:fit-content; }
+.qr-duo{ display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:10px 0; }
+.qr-block{ text-align:center; }
+.qr-title{ font-weight:700; margin-bottom:6px; }
+@media(max-width:600px){ .qr-duo{ grid-template-columns:1fr; } }
 .shop-total{ font-size:1.05rem; font-weight:700; margin-top:11px; }
 .fs-opt.active{ outline:2px solid var(--accent); background:var(--accent); color:#fff; }
 
@@ -260,6 +285,24 @@ font-size:.65rem; font-weight:800; padding:4px 10px; border-radius:99px; box-sha
 margin:0 auto 10px; border-radius:14px; font-variant-numeric:tabular-nums; }
 #p-calc .grid-btns{ display:grid; grid-template-columns:repeat(4,1fr); gap:9px; max-width:320px; margin:0 auto; }
 #p-calc .grid-btns button{ padding:14px 0; font-size:1.05rem; font-weight:600; border-radius:12px; }
+
+.cc-tabs{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:15px; }
+.cc-tab{ border:1px solid var(--border); background:transparent; color:var(--muted); border-radius:99px;
+padding:7px 13px; font-size:.83rem; font-weight:600; cursor:pointer; transition:all var(--anim-fast); }
+.cc-tab:hover{ border-color:var(--accent); color:var(--accent); }
+.cc-tab.on{ background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; box-shadow:0 4px 12px rgba(79,109,245,.35); }
+.cc-panel{ text-align:left; }
+.cc-panel .scirow{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; }
+.cc-panel label.hint{ display:block; }
+.sci-samples{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin:10px 0; }
+.sci-out{ background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:13px 15px; margin-top:10px;
+min-height:20px; font-size:.95rem; white-space:pre-wrap; word-break:break-word; text-align:left; }
+.opstrip{ display:flex; gap:6px; flex-wrap:wrap; }
+.ll{ font-weight:700; }
+.mx-wrap{ display:flex; gap:24px; flex-wrap:wrap; justify-content:center; margin-top:10px; }
+.mx-grid{ display:grid; gap:5px; margin-top:6px; }
+.mx-grid input{ width:64px; padding:6px; text-align:center; font-size:.85rem; }
+@media(max-width:600px){ .mx-wrap{ flex-direction:column; align-items:center; } }
 
 /* ===== АКТИВАЦИЯ КЛЮЧА: выравнивание и зелёная кнопка ===== */
 .pw-keyrow{ text-align:center; }
@@ -319,6 +362,8 @@ transition:transform var(--anim-fast), box-shadow var(--anim-fast), filter var(-
 <button onclick="logout()">Выйти</button>
 </div>
 </header>
+<div class="nav-shell">
+<button class="nav-arrow left" onclick="navScroll(-1)" title="Прокрутить влево"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
 <nav id="mainNav">
 <button data-p="tasks" class="active">✅ Задачи</button>
 <button data-p="notes">📝 Заметки</button>
@@ -334,6 +379,8 @@ transition:transform var(--anim-fast), box-shadow var(--anim-fast), filter var(-
 <button data-p="cal" data-pro="1">📅 Календарь</button>
 <button data-p="set">⚙️ Настройки</button>
 </nav>
+<button class="nav-arrow right" onclick="navScroll(1)" title="Прокрутить вправо"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+</div>
 <main>
 
 <!-- ЗАДАЧИ -->
@@ -441,7 +488,20 @@ transition:transform var(--anim-fast), box-shadow var(--anim-fast), filter var(-
 
 <!-- КАЛЬКУЛЯТОР -->
 <section id="p-calc" class="page">
-<div class="card"><h2 style="justify-content:center">🧮 Калькулятор</h2>
+<div class="card"><h2 style="justify-content:center">🧮 Продвинутый калькулятор</h2>
+<div class="cc-tabs" id="ccTabs">
+<button class="cc-tab on" data-ct="base">🔢 Базовый</button>
+<button class="cc-tab" data-ct="sci">🧬 Научный</button>
+<button class="cc-tab" data-ct="matrix">🔲 Матрицы</button>
+<button class="cc-tab" data-ct="complex">ℂ Комплексные</button>
+<button class="cc-tab" data-ct="root">𝓔 Корни</button>
+<button class="cc-tab" data-ct="loan">🏦 Кредит/Вклад</button>
+<button class="cc-tab" data-ct="cur">💱 Валюта</button>
+<button class="cc-tab" data-ct="prog">📜 Скрипты</button>
+</div>
+
+<!-- БАЗОВЫЙ -->
+<div class="cc-panel" data-cp="base">
 <input id="cd" value="0" readonly>
 <div class="grid-btns">
 <button class="btn gray" onclick="cClear()">C</button><button class="btn gray" onclick="cBack()">⌫</button>
@@ -451,7 +511,109 @@ transition:transform var(--anim-fast), box-shadow var(--anim-fast), filter var(-
 <button onclick="cNum('1')">1</button><button onclick="cNum('2')">2</button><button onclick="cNum('3')">3</button><button class="btn" onclick="cOp('+')">+</button>
 <button onclick="cNum('0')">0</button><button onclick="cNum('.')">,</button><button onclick="cNum(Math.PI.toString().slice(0,10))">π</button><button class="btn ok" onclick="cEq()">=</button>
 </div>
+<button class="btn small" style="margin-top:10px" onclick="ccPrint(document.getElementById('cd').value,'Базовый калькулятор')">🖨 Печать</button>
 <p class="hint">Цепочки: 5 + 3 × 2. Работает ввод с клавиатуры.</p></div>
+
+<!-- НАУЧНЫЙ -->
+<div class="cc-panel" data-cp="sci" style="display:none">
+<div class="scirow"><input id="sciIn" placeholder="Введите выражение: sin(30), log(100), 2^10, sqrt(16)…" style="flex:1;min-width:160px">
+<button class="btn" onclick="sciCalc()">Вычислить</button></div>
+<div class="sci-samples">
+<button class="btn small gray" onclick="scSet('sin(30)')">sin</button>
+<button class="btn small gray" onclick="scSet('cos(60)')">cos</button>
+<button class="btn small gray" onclick="scSet('tan(45)')">tan</button>
+<button class="btn small gray" onclick="scSet('log(100)')">log</button>
+<button class="btn small gray" onclick="scSet('ln(e)')">ln</button>
+<button class="btn small gray" onclick="scSet('sqrt(144)')">√</button>
+<button class="btn small gray" onclick="scSet('2^10')">^</button>
+<button class="btn small gray" onclick="scSet('abs(-7)')">abs</button>
+<button class="btn small gray" onclick="scSet('fact(5)')">n!</button>
+</div>
+<div class="sci-out" id="sciOut"></div>
+<button class="btn small" style="margin-top:8px" onclick="ccPrint(document.getElementById('sciOut').innerText,'Научный калькулятор')">🖨 Печать</button>
+<p class="hint">Поддерживает sin/cos/tan (градусы), log (10), ln, sqrt, ^, abs, fact, π, e. Компактнее — один ввод работает сразу.</p></div>
+
+<!-- МАТРИЦЫ -->
+<div class="cc-panel" data-cp="matrix" style="display:none">
+<div class="scirow">
+<label>Размер: <select id="mxN" onchange="buildMatrix()"><option>2</option><option>3</option><option>4</option></select>×<select id="mxM" onchange="buildMatrix()"><option>2</option><option selected>3</option><option>4</option></select></label>
+<button class="btn" onclick="mxDet()">Определитель</button>
+<button class="btn" onclick="mxAdd()">A+B</button>
+<button class="btn" onclick="mxMul()">A×B</button>
+</div>
+<div class="mx-wrap"><div><b>A =</b><div class="mx-grid" id="mxA"></div></div>
+<div><b>B =</b><div class="mx-grid" id="mxB"></div></div></div>
+<div class="sci-out" id="mxRes"></div>
+<button class="btn small" style="margin-top:8px" onclick="ccPrint(document.getElementById('mxRes').innerText,'Матрицы')">🖨 Печать</button>
+</div>
+
+<!-- КОМПЛЕКСНЫЕ -->
+<div class="cc-panel" data-cp="complex" style="display:none">
+<div class="scirow"><input id="cxA" placeholder="a (напр. 3+4)" style="flex:1">
+<div class="opstrip">
+<button class="btn small gray" onclick="cxOp('add')">A+B</button>
+<button class="btn small gray" onclick="cxOp('sub')">A−B</button>
+<button class="btn small gray" onclick="cxOp('mul')">A×B</button>
+<button class="btn small gray" onclick="cxOp('div')">A÷B</button>
+<button class="btn small gray" onclick="cxOp('abs')">|A|</button>
+<button class="btn small gray" onclick="cxOp('conj')">A̅</button>
+</div></div>
+<input id="cxB" placeholder="b (напр. 1-2i)" style="width:100%;margin-top:8px">
+<div class="sci-out" id="cxOut"></div>
+<button class="btn small" style="margin-top:8px" onclick="ccPrint(document.getElementById('cxOut').innerText,'Комплексные числа')">🖨 Печать</button>
+<p class="hint">Формат: 3+4i, -2-5i, i, 7. Комплексные поддерживаются везде.</p></div>
+
+<!-- КОРНИ -->
+<div class="cc-panel" data-cp="root" style="display:none">
+<div class="scirow"><input id="rootA" placeholder="коэфф. a (при x²)" value="1" style="width:80px">
+<input id="rootB" placeholder="коэфф. b (при x)" value="-3" style="width:80px">
+<input id="rootC" placeholder="свободный c" value="2" style="width:80px">
+<button class="btn" onclick="solveQuad()">Решить</button></div>
+<label class="hint" style="display:inline">Уравнение: <b id="rootEq">ax²+bx+c=0</b></label>
+<div class="sci-out" id="rootOut"></div>
+<span class="hint">Два корня или один (дискриминант=0). Находит и комплексные корни.</span>
+<button class="btn small" style="margin-top:8px" onclick="ccPrint(document.getElementById('rootOut').innerText,'Корни уравнения')">🖨 Печать</button></div>
+
+<!-- КРЕДИТ/ВКЛАД -->
+<div class="cc-panel" data-cp="loan" style="display:none">
+<div class="loan-tabs" style="display:flex;gap:6px;margin-bottom:10px">
+<button class="btn small gray on" data-lt="credit" onclick="loanType('credit',this)">Кредит</button>
+<button class="btn small gray" data-lt="dep" onclick="loanType('dep',this)">Вклад</button>
+</div>
+<div id="loanBody">
+<div class="scirow">
+<label>Сумма, ₽ <input id="lnAmt" type="number" value="100000" style="width:110px"></label>
+<label>Процент, % <input id="lnRate" type="number" value="15" style="width:80px"></label>
+<label>Срок, мес <input id="lnMon" type="number" value="12" style="width:80px"></label>
+<button class="btn" onclick="calLoan()">Рассчитать</button>
+</div>
+</div>
+<div class="sci-out" id="loanOut"></div>
+<button class="btn small" style="margin-top:8px" onclick="ccPrint(document.getElementById('loanOut').innerText,'Кредит/Вклад')">🖨 Печать</button></div>
+
+<!-- ВАЛЮТА -->
+<div class="cc-panel" data-cp="cur" style="display:none">
+<div class="scirow">
+<select id="curFrom"><option>RUB</option><option>USD</option><option>EUR</option><option>KZT</option><option>CNY</option><option>BYN</option></select>
+<input id="curAmt" type="number" value="100" style="width:110px">
+<select id="curTo"><option>USD</option><option>RUB</option><option>EUR</option><option>KZT</option><option>CNY</option><option>BYN</option></select>
+<button class="btn" onclick="curCalc()">Перевести</button>
+</div>
+<div class="sci-out" id="curOut"></div>
+<button class="btn small" style="margin-top:8px" onclick="ccPrint(document.getElementById('curOut').innerText,'Конверсия валют')">🖨 Печать</button>
+<p class="hint">Курсы зафиксированы в коде и обновляются вручную в конфиге.</p></div>
+
+<!-- СКРИПТЫ -->
+<div class="cc-panel" data-cp="prog" style="display:none">
+<label>Код (JavaScript, доступны x, sin(), log() и т.д.):</label>
+<textarea id="prgCode" rows="5" placeholder="return x*2 + 1;  →  с одним аргументом x&#10;или используйте return выражение с аргументами a,b">return x**2 + 1;</textarea>
+<div class="scirow"><input id="prgArg" placeholder="Аргумент (для программы с x)" value="5" style="flex:1;min-width:140px">
+<button class="btn" onclick="runProg()">Запустить</button>
+<button class="btn gray" onclick="ccPrint(document.getElementById('prgOut').innerText,'Скрипт')">🖨 Печать</button></div>
+<div class="sci-out" id="prgOut"></div>
+<p class="hint">Программа — тело JS-функции. Последний результат через return (или стейтменты - выводите в prgLog). Поддерживает циклы, условия, функции.</p></div>
+
+</div>
 </section>
 
 <!-- КОНВЕРТЕР -->
@@ -659,7 +821,6 @@ transition:transform var(--anim-fast), box-shadow var(--anim-fast), filter var(-
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="config.js"></script>
 
 <div class="modal-overlay" id="forgotOv" onclick="if(event.target===this)closeForgot()">
 <div class="paywall" style="max-width:420px;text-align:center">
@@ -700,6 +861,7 @@ set(k,v){ localStorage.setItem('lc_g_'+k, JSON.stringify(v)); }
 let user = store.get('session', null);
 let tasks, notes, habits, fins, shop, moods, events;
 let trialWasActive = false;
+
 
 function hash(s){ let h=0x811c9dc5; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193);} return (h>>>0).toString(36)+s.length; }
 
@@ -851,41 +1013,25 @@ refreshProUI(); toast('Подписка сброшена');
 }
 
 /* ================= Оплата: два QR ================= */
-function payText(price){
-let t = 'Оплата тарифа: '+price+' ₽.';
-if(SELLER_CARD) t += ' Карта: '+SELLER_CARD+'. ';
-if(SELLER_SBP_PHONE) t += 'СБП: '+SELLER_SBP_PHONE+'.';
-return t;
-}
+function payText(price){ return 'Оплата тарифа: '+price+' ₽.'; }
 function openPayment(planType){
 const pr = PLANS[planType];
 const html = [];
 html.push('<div class="pw-pay"><h3>💳 Тариф «'+pr.name+'» — '+pr.price+' ₽</h3>');
 html.push('<div class="pay-item" style="text-align:center;font-size:1.1rem">Переведите ровно: <b style="font-size:1.3rem">'+pr.price+' ₽</b></div>');
-if(SELLER_CARD){
-html.push('<div class="pay-item">Перевод на карту:<br><span class="val">'+esc(SELLER_CARD)+'</span>'
-+' <button class="btn small" onclick="copyText(\''+SELLER_CARD+'\',\'Карта скопирована\')">Копировать</button></div>');
-}
-if(SELLER_SBP_PHONE){
-html.push('<div class="pay-item">Перевод по СБП (по номеру телефона в банковском приложении):<br><span class="val">'+esc(SELLER_SBP_PHONE)+'</span>'
-+' <button class="btn small" onclick="copyText(\''+SELLER_SBP_PHONE+'\',\'Номер скопирован\')">Копировать</button></div>');
-}
-html.push('<div class="pay-item" style="text-align:center"><b>QR-код для оплаты</b><div id="qrBox"></div>'
-+'<p class="hint" style="text-align:center">Наведите камеру банка — откроется перевод. Если банк не подставил сумму — введите вручную: <b>'+pr.price+' ₽</b>.</p></div>');
-html.push('<div class="pay-item" style="text-align:center"><b>QR-код чата продавца в MAX</b><div id="qrMax"></div>'
-+'<p class="hint" style="text-align:center">Наведите камеру — откроется чат с продавцом.</p></div>');
+html.push('<div class="qr-duo">'
++'<div class="qr-block"><div class="qr-title">QR-код для оплаты</div><div id="qrBox"></div></div>'
++'<div class="qr-block"><div class="qr-title">QR-код связи с продавцом</div><div id="qrMax"></div></div>'
++'</div>');
 html.push('<div class="pay-item">❗ После перевода напишите продавцу в MAX — он пришлёт ключ вида PRO-'+planType+'-XXXXXXXX.</div>');
-html.push('<div class="row" style="margin-top:10px">'
-+'<a class="btn ok" style="flex:1;text-align:center" href="tel:'+MAX_PHONE.replace(/[^+\d]/g,'')+'">💬 MAX: '+esc(MAX_PHONE)+'</a>'
-+(MAX_CHAT_URL ? '<a class="btn" style="flex:1;text-align:center" href="'+esc(MAX_CHAT_URL)+'" target="_blank" rel="noopener">Открыть чат в MAX</a>' : '')
-+'</div></div>');
+html.push('</div>');
 document.getElementById('pwPay').innerHTML = html.join('');
 document.getElementById('pwSub').textContent = 'Тариф «'+pr.name+'» — '+pr.price+' ₽ ('+pr.per+')';
 document.getElementById('paywallOv').classList.add('show');
 let payUrl = SBP_QR_LINK;
 if(payUrl) payUrl += (payUrl.indexOf('?')>=0 ? '&' : '?') + 'amount=' + pr.price;
 drawQRTo('qrBox', payUrl || payText(pr.price));
-drawQRTo('qrMax', MAX_CHAT_URL);
+drawQRTo('qrMax', MAX_CHAT_URL || ('https://'+MAX_PHONE));
 }
 function drawQRTo(id, text){
 const box = document.getElementById(id);
@@ -921,10 +1067,10 @@ errEl.textContent='Проверяем ключ…';
 if(btn) btn.disabled = true;
 
 const url = (typeof KEY_SERVER_URL !== 'undefined' && KEY_SERVER_URL) ? KEY_SERVER_URL : 'https://YOUR-WORKER.workers.dev';
-fetch(url + '/api/verify', {
+fetch(url + '/api/activate', {
   method:'POST',
   headers:{ 'Content-Type':'application/json' },
-  body: JSON.stringify({ key: key })
+  body: JSON.stringify({ key: key, user: user || 'unknown' })
 })
 .then(r=>r.json())
 .then(res=>{
@@ -1134,7 +1280,25 @@ if(b.dataset.p==='mood'){ renderMood(); }
 if(b.dataset.p==='set'){ renderStat(); refreshProUI(); refreshAppearance(); }
 if(b.dataset.p==='timer'){ renderMs(); swShow(); cdShow(); tbShow(); }
 });
-function renderAll(){ renderTasks(); renderNotes(); renderHabits(); renderFin(); drawPie(); renderShop(); renderMood(); renderCal(); renderStat(); refreshAppearance(); }
+/* ===== Навигация: стрелки прокрутки меню ===== */
+function navScroll(dir){
+const nav=document.getElementById('mainNav');
+const step=Math.max(240, nav.clientWidth*0.7);
+nav.scrollBy({ left: dir*step, behavior:'smooth' });
+}
+function navUpdateArrows(){
+const nav=document.getElementById('mainNav');
+const l=document.querySelector('.nav-arrow.left'), r=document.querySelector('.nav-arrow.right');
+if(!nav||!l||!r) return;
+l.classList.toggle('hidden', nav.scrollLeft<=2);
+r.classList.toggle('hidden', nav.scrollLeft>=nav.scrollWidth-nav.clientWidth-2);
+nav.classList.toggle('at-overflow', nav.scrollWidth>nav.clientWidth);
+}
+document.addEventListener('scroll', navUpdateArrows, true);
+window.addEventListener('resize', navUpdateArrows);
+window.addEventListener('load', navUpdateArrows);
+setTimeout(navUpdateArrows, 400);
+function renderAll(){ renderTasks(); renderNotes(); renderHabits(); renderFin(); drawPie(); renderShop(); renderMood(); renderCal(); renderStat(); refreshAppearance(); navUpdateArrows(); }
 
 
 /* ================= Задачи ================= */
@@ -1310,7 +1474,7 @@ const vals=Object.entries(moods).filter(([k])=>k<=today()).slice(-14).map(([,v])
 document.getElementById('moodAvg').textContent=vals.length?('Средний уровень за 2 недели: '+(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)+' из 5'):'';
 }
 
-/* ================= Калькулятор ================= */
+/* ================= Калькулятор: базовый ================= */
 let cA=null,cS=null,fresh=true;
 const cdEl=document.getElementById('cd');
 function cNum(n){ cdEl.value=(cdEl.value==='0'||fresh)&&n!=='.'?n:cdEl.value+n; fresh=false; }
@@ -1322,8 +1486,256 @@ if(cS==='+')r=cA+b; else if(cS==='-')r=cA-b; else if(cS==='*')r=cA*b;
 else if(cS==='/')r=b===0?NaN:cA/b; else r=cA*b/100;
 cdEl.value=isNaN(r)?'Ошибка':String(Math.round(r*1e10)/1e10).replace('.',',');
 cA=null;cS=null;fresh=true; }
+
+/* ================= Калькулятор: вкладки ================= */
+function ccActivate(ct){
+document.querySelectorAll('.cc-tab').forEach(t=>t.classList.toggle('on', t.dataset.ct===ct));
+document.querySelectorAll('.cc-panel').forEach(p=>p.style.display=(p.dataset.cp===ct)?'':'none');
+if(ct==='matrix') buildMatrix();
+}
+document.querySelectorAll('.cc-tab').forEach(t=>t.onclick=()=>ccActivate(t.dataset.ct));
+
+/* ================= Калькулятор: печать ================= */
+function ccPrint(text,title){
+const w=window.open('','_blank');
+if(!w){ alert('Нужно разрешить всплывающие окна для печати.'); return; }
+w.document.write('<html><head><title>'+(title||'Расчёт')+'</title><style>body{font-family:Segoe UI,Arial,sans-serif;padding:30px;color:#111}h1{font-size:18px;margin-bottom:14px}pre{font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word}</style></head><body><h1>🧮 '+ (title||'Расчёт')+'</h1><pre>'+text.replace(/</g,'&lt;')+'</pre><script>window.onload=function(){window.print()}<\/script></body></html>');
+w.document.close();
+}
+
+/* ================= Калькулятор: научный ================= */
+const __ccSafe = {
+  sin:function(d){ return Math.sin(d*Math.PI/180); },
+  cos:function(d){ return Math.cos(d*Math.PI/180); },
+  tan:function(d){ return Math.tan(d*Math.PI/180); },
+  asin:function(v){ return Math.asin(v)*180/Math.PI; },
+  acos:function(v){ return Math.acos(v)*180/Math.PI; },
+  atan:function(v){ return Math.atan(v)*180/Math.PI; },
+  log:Math.log10, ln:Math.log, sqrt:Math.sqrt, abs:Math.abs, exp:Math.exp, floor:Math.floor,
+  ceil:Math.ceil, round:Math.round, pi:Math.PI, e:Math.E,
+  max:Math.max, min:Math.min, pow:Math.pow, atan2:Math.atan2,
+  fact:function(n){ n=Math.round(n); if(n<0)return NaN; let r=1; for(let i=2;i<=n;i++)r*=i; return r; }
+};
+function __ccEval(expr, x){
+  const env=Object.assign({}, __ccSafe);
+  if(x!==undefined) env.x=x;
+  env.y=x;
+  const body='with(env){ return ('+expr+'); }';
+  try{
+    const f=new Function('env', body);
+    let v=f(env);
+    if(typeof v==='number' && !isFinite(v)) return NaN;
+    return v;
+  }catch(e){ return NaN; }
+}
+function scSet(v){ document.getElementById('sciIn').value=v; sciCalc(); }
+function sciCalc(){
+  const s=document.getElementById('sciIn').value.trim();
+  if(!s){ document.getElementById('sciOut').textContent=''; return; }
+  // замена ^ на ** с учётом функций
+  let e=s.replace(/\^/g,'**');
+  const r=__ccEval(e);
+  const out=document.getElementById('sciOut');
+  if(isNaN(r)){ out.innerHTML='<span style="color:var(--err)">⚠ Ошибка выражения.</span>'; return; }
+  out.textContent = s+' = '+fmtSci(r);
+  sciLog(s, r);
+}
+let sciHistory=[];
+function sciLog(s,r){ sciHistory.unshift({s,r}); if(sciHistory.length>12)sciHistory.pop();
+const el=document.getElementById('sciOut');
+el.innerHTML=s+' = <b>'+fmtSci(r)+'</b>'+(sciHistory.length>1?'<div class="hint" style="margin-top:8px;opacity:.75">'+sciHistory.slice(1).map(h=>h.s+' = '+fmtSci(h.r)).join('<br>')+'</div>':''); }
+function fmtSci(n){ if(typeof n!=='number') return String(n); if(!isFinite(n)) return String(n);
+if(Math.abs(n)>=1e12||(Math.abs(n)<1e-9&&n!==0)) return n.toExponential(6).replace(/\.?0+e/,'e');
+return String(Math.round(n*1e10)/1e10).replace('.',','); }
+
+/* ================= Калькулятор: матрицы ================= */
+function buildMatrix(){
+  const n=+document.getElementById('mxN').value, m=+document.getElementById('mxM').value;
+  const a=document.getElementById('mxA'), b=document.getElementById('mxB');
+  a.style.gridTemplateColumns='repeat('+m+',auto)';
+  b.style.gridTemplateColumns='repeat('+m+',auto)';
+  a.innerHTML=''; b.innerHTML='';
+  const av=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
+  const total=n*m;
+  for(let i=0;i<total;i++){
+    a.innerHTML+='<input type="number" step="any" value="'+av[i%16]+'">';
+    b.innerHTML+='<input type="number" step="any" value="'+(16-(i%16))+'">';
+  }
+  document.getElementById('mxRes').textContent='';
+}
+function readMatrix(el,n,m){ const vals=[...el.children].map(inp=>parseFloat(inp.value)||0);
+  const M=[]; for(let i=0;i<n;i++)M.push(vals.slice(i*m,i*m+m)); return M; }
+function fmtM(M){ return M.map(r=>'['+r.map(v=>String(Math.round(v*1e6)/1e6).replace('.',',')).join('  ')+']').join('\n'); }
+function mxDet(){
+  const n=+document.getElementById('mxN').value, m=+document.getElementById('mxM').value;
+  if(n!==m){ document.getElementById('mxRes').textContent='Определитель — только для квадратной матрицы (N=N).'; return; }
+  const M=readMatrix(document.getElementById('mxA'),n,m);
+  const d=detRec(M);
+  document.getElementById('mxRes').textContent='det(A) = '+fmtSci(d);
+}
+function detRec(M){ const n=M.length; if(n===1)return M[0][0]; if(n===2)return M[0][0]*M[1][1]-M[0][1]*M[1][0];
+  let s=0; for(let c=0;c<n;c++){ const sub=M.slice(1).map(r=>r.filter((_,j)=>j!==c));
+    s+=((c%2)?-1:1)*M[0][c]*detRec(sub); } return s; }
+function mxAdd(){
+  const n=+document.getElementById('mxN').value, m=+document.getElementById('mxM').value;
+  const A=readMatrix(document.getElementById('mxA'),n,m), B=readMatrix(document.getElementById('mxB'),n,m);
+  const R=A.map((r,i)=>r.map((v,j)=>v+B[i][j]));
+  document.getElementById('mxRes').textContent='A + B =\n'+fmtM(R);
+}
+function mxMul(){
+  const n1=+document.getElementById('mxN').value, m1=+document.getElementById('mxM').value;
+  // для умножения нужны A (n×m) и B (m×m) — но здесь обе одного размера; сделаем A×B если n1==m1
+  if(n1!==m1){ document.getElementById('mxRes').textContent='Умножение: A×B возможно только при N=M (квадратные).'; return; }
+  const n=n1,m=m1;
+  const A=readMatrix(document.getElementById('mxA'),n,m), B=readMatrix(document.getElementById('mxB'),n,m);
+  const R=[]; for(let i=0;i<n;i++){ R.push([]); for(let j=0;j<m;j++){ let s=0; for(let k=0;k<m;k++)s+=A[i][k]*B[k][j]; R[i].push(s); } }
+  document.getElementById('mxRes').textContent='A × B =\n'+fmtM(R);
+}
+
+/* ================= Калькулятор: комплексные ================= */
+function cxParse(s){
+  s=String(s||'').trim().toLowerCase().replace(/\s+/g,'');
+  if(!s) return {re:0,im:0};
+  if(s==='i') return {re:0,im:1};
+  if(s==='-i') return {re:0,im:-1};
+  // разбиваем на действительную и мнимую части
+  let re=0, im=0;
+  // найти 'i' не в степени и взять мнимую часть
+  const m=s.match(/([+-]?\d*\.?\d*)i/);
+  if(m && m.index>=0){
+    const coef=m[1];
+    im = (coef===''||coef==='+')?1:(coef==='-')?-1:parseFloat(coef);
+    // убираем мнимую часть из строки, чтобы получить действительную
+    s = s.slice(0,m.index)+s.slice(m.index+m[0].length);
+  }
+  const rest=s.replace(/[+]/g,' ');
+  if(rest.trim()!=='') re=parseFloat(rest)||0;
+  return {re,im};
+}
+function cxStr(z){ if(!z)return '0';
+  if(z.re===0&&z.im===0)return '0';
+  const im=z.im;
+  if(im===0)return fmtSci(z.re);
+  const sign=im>0?'+':'-';
+  const av=Math.abs(im);
+  const imS=(av===1)?'i':fmtSci(av)+'i';
+  if(z.re===0)return (im<0?'-':'')+imS;
+  return fmtSci(z.re)+sign+imS;
+}
+function cxOp(op){
+  const A=cxParse(document.getElementById('cxA').value);
+  const B=cxParse(document.getElementById('cxB').value);
+  let R;
+  if(op==='add') R={re:A.re+B.re,im:A.im+B.im};
+  else if(op==='sub') R={re:A.re-B.re,im:A.im-B.im};
+  else if(op==='mul') R={re:A.re*B.re-A.im*B.im,im:A.re*B.im+A.im*B.re};
+  else if(op==='div'){ const d=B.re*B.re+B.im*B.im; R=d===0?{re:NaN,im:NaN}:{re:(A.re*B.re+A.im*B.im)/d,im:(A.im*B.re-A.re*B.im)/d}; }
+  else if(op==='abs') R={re:Math.hypot(A.re,A.im),im:0};
+  else if(op==='conj') R={re:A.re,im:-A.im};
+  document.getElementById('cxOut').textContent=
+    'A = '+cxStr(A)+(op==='abs'?'':'   B = '+cxStr(B))+'     →   '+cxStr(R);
+}
+
+/* ================= Калькулятор: корни ================= */
+function solveQuad(){
+  const a=parseFloat(document.getElementById('rootA').value);
+  const b=parseFloat(document.getElementById('rootB').value);
+  const c=parseFloat(document.getElementById('rootC').value);
+  document.getElementById('rootEq').textContent=a+'x²'+(b>=0?'+':'')+b+'x'+(c>=0?'+':'')+c+'=0';
+  const out=document.getElementById('rootOut');
+  if(!a){ out.innerHTML=a===0&&b===0?'<span class="empty">Нет решений (или любое x).</span>':('Линейное: x = '+fmtSci(-c/b)); return; }
+  const D=b*b-4*a*c;
+  if(D>0){ const s=Math.sqrt(D), x1=(-b+s)/(2*a), x2=(-b-s)/(2*a);
+    out.innerHTML='Два корня:<br><b>x₁ = '+fmtSci(x1)+'</b><br><b>x₂ = '+fmtSci(x2)+'</b><br><span class="hint">Дискриминант D = '+fmtSci(D)+'</span>'; }
+  else if(D===0){ const x=-b/(2*a); out.innerHTML='Один корень (кратности 2):<br><b>x = '+fmtSci(x)+'</b>'; }
+  else { const re=-b/(2*a), im=Math.sqrt(-D)/(2*a);
+    out.innerHTML='Комплексные корни:<br><b>x₁ = '+fmtSci(re)+(im>=0?' + ':' − ')+fmtSci(Math.abs(im))+'i</b><br><b>x₂ = '+fmtSci(re)+(-im>=0?' + ':' − ')+fmtSci(Math.abs(im))+'i</b><br><span class="hint">D = '+fmtSci(D)+' &lt; 0</span>'; }
+}
+
+/* ================= Калькулятор: кредит/вклад ================= */
+function loanType(t,btn){
+  document.querySelectorAll('[data-lt]').forEach(x=>x.classList.toggle('on',x===btn));
+  const isDep=t==='dep';
+  document.getElementById('loanBody').innerHTML = isDep
+   ? '<div class="scirow"><label>Вклад, ₽ <input id="lnAmt" type="number" value="100000" style="width:110px"></label>'+
+     '<label>Год. ставка, % <input id="lnRate" type="number" value="12" style="width:80px"></label>'+
+     '<label>Срок, мес <input id="lnMon" type="number" value="24" style="width:80px"></label>'+
+     '<button class="btn" onclick="calDep()">Рассчитать</button></div>'
+   : '<div class="scirow"><label>Сумма, ₽ <input id="lnAmt" type="number" value="100000" style="width:110px"></label>'+
+     '<label>Процент, % <input id="lnRate" type="number" value="15" style="width:80px"></label>'+
+     '<label>Срок, мес <input id="lnMon" type="number" value="12" style="width:80px"></label>'+
+     '<button class="btn" onclick="calLoan()">Рассчитать</button></div>';
+}
+function calLoan(){
+  const S=+document.getElementById('lnAmt').value||0, p=+document.getElementById('lnRate').value||0, n=+document.getElementById('lnMon').value||1;
+  const r=p/1200;
+  const payment = r===0? S/n : S*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+  const total=payment*n, over=total-S;
+  document.getElementById('loanOut').innerHTML=
+    'Кредит: <b>'+fmtR(S)+'</b> на <b>'+n+' мес</b> под <b>'+p+'%</b> год.<br><br>'+
+    'Ежемесячный платёж: <b style="font-size:1.2rem">'+fmtR(payment)+'</b><br>'+
+    'Всего выплат: <b>'+fmtR(total)+'</b><br>'+
+    'Переплата: <b style="color:var(--err)">'+fmtR(over)+'</b><br>'+
+    '<span class="hint">Аннуитетный (равный) платёж.</span>';
+}
+function calDep(){
+  const S=+document.getElementById('lnAmt').value||0, p=+document.getElementById('lnRate').value||0, n=+document.getElementById('lnMon').value||1;
+  const cap = S*Math.pow(1+p/1200,n);
+  document.getElementById('loanOut').innerHTML=
+    'Вклад: <b>'+fmtR(S)+'</b> под <b>'+p+'%</b> год., на <b>'+n+' мес</b>, с ежемесячной капитализацией.<br><br>'+
+    'Итоговая сумма: <b style="font-size:1.2rem">'+fmtR(cap)+'</b><br>'+
+    'Доход: <b style="color:var(--ok)">'+fmtR(cap-S)+'</b> (+'+fmtSci((cap/S-1)*100)+'%)';
+}
+
+/* ================= Калькулятор: валюта ================= */
+const CURR_RATES={ RUB:1, USD:92.5, EUR:100.2, KZT:0.19, CNY:12.8, BYN:28.5 };
+function ccNum(n){ return (Math.round(n*100)/100).toLocaleString('ru-RU'); }
+function curCalc(){
+  const from=document.getElementById('curFrom').value, to=document.getElementById('curTo').value;
+  const amt=parseFloat(document.getElementById('curAmt').value)||0;
+  const rub=amt*CURR_RATES[from];
+  const res=rub/CURR_RATES[to];
+  document.getElementById('curOut').innerHTML=
+    amt.toLocaleString('ru-RU')+' '+from+' = <b style="font-size:1.3rem">'+ccNum(res)+'</b> '+to+
+    '<br><span class="hint">Курс: 1 '+from+' = '+ccNum(CURR_RATES[from]/CURR_RATES[to])+' '+to+' (ручной, обновляется в config.js)</span>';
+}
+
+/* ================= Калькулятор: скрипты ================= */
+function runProg(){
+  const code=document.getElementById('prgCode').value;
+  const rawArg=document.getElementById('prgArg').value.trim();
+  const out=document.getElementById('prgOut');
+  let log='';
+  const consoleLog=(s)=>log+=(log?'\n':'')+String(s);
+  const env2=Object.assign({}, __ccSafe, { log:consoleLog, print:consoleLog, console:{log:consoleLog} });
+  let arg;
+  if(rawArg!==''){
+    try{ arg=JSON.parse(rawArg); }catch(_){ arg=rawArg; }
+  }
+  try{
+    const fn=new Function('env','x','y','a','b','arg',
+      'with(env){ return (function(){\n'+code+'\n}); }');
+    const inner=fn(env2, arg, arg, arg, arg, arg);
+    const result=inner();
+    let text='';
+    if(log) text=log;
+    if(result!==undefined){ text+=(text?'\n\n':'')+'→ Результат: '+fmtOut(result); }
+    out.textContent=text||'(код выполнен без вывода)';
+    out.style.whiteSpace='pre-wrap';
+  }catch(e){ out.innerHTML='<span style="color:var(--err)">⚠ Ошибка: '+esc(e.message)+'</span>'; }
+}
+function fmtOut(v){
+  if(Array.isArray(v)) return v.map(fmtOut).join(', ');
+  if(v && typeof v==='object'){ try{ return JSON.stringify(v).replace('{','{ ').replace('}', ' }'); }catch(_){} }
+  if(typeof v==='number') return fmtSci(v);
+  return String(v);
+}
+
+/* ===== клавиатура (базовый) ===== */
 document.addEventListener('keydown',e=>{
 if(!document.getElementById('p-calc').classList.contains('active'))return;
+const focus=document.activeElement;
+if(focus && (focus.tagName==='INPUT'||focus.tagName==='TEXTAREA'))return;
 if(/^[0-9.]$/.test(e.key))cNum(e.key);
 else if(['+','-','*','/','%'].includes(e.key))cOp(e.key);
 else if(e.key==='Enter')cEq(); else if(e.key==='Backspace')cBack(); else if(e.key==='Escape')cClear(); });
